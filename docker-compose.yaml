@@ -1,0 +1,153 @@
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    networks:
+      vpcbr:
+        ipv4_address: 10.1.0.2
+    depends_on:
+      - user-service
+      # - menu-service
+      # - order-service
+      # - payment-service
+      # - guest-service
+    environment:
+      - GATEWAY_ENV_VAR1=value1
+      - GATEWAY_ENV_VAR2=value2
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    networks:
+      vpcbr:
+        ipv4_address: 10.1.0.3
+    depends_on:
+      - mysql
+    environment:
+      SERVE_PORT: "80"
+      PRIVATE_KEY: |
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIGvrti8aB/hv41OSyjXK0KB3U0cLKwA+RKCn5UiChp+yoAoGCCqGSM49
+        AwEHoUQDQgAEaGdjmHWV4qXQFnI548BLMO0oHCKz2Lz0zjCpldMSNize/86ZCqLJ
+        jDANQxX6YesgSkHkj8xjk63NQK7QY3icDg==
+        -----END EC PRIVATE KEY-----
+      PUBLIC_KEY: |
+        -----BEGIN PUBLIC KEY-----
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaGdjmHWV4qXQFnI548BLMO0oHCKz
+        2Lz0zjCpldMSNize/86ZCqLJjDANQxX6YesgSkHkj8xjk63NQK7QY3icDg==
+        -----END PUBLIC KEY-----
+      DB_USERNAME: "tamaki"
+      DB_PASSWORD: "tamaki*cafe*pos"
+      DB_HOST: "10.1.0.10"
+      DB_PORT: "3306"
+      DB_DATABASE: "cafe_pos"
+    restart: unless-stopped
+
+  menu-service:
+    build:
+      context: ./services/menu-service
+      dockerfile: Dockerfile
+    networks:
+      vpcbr:
+        ipv4_address: 10.1.0.4
+    depends_on:
+      - mysql
+    environment:
+      SERVE_PORT: "80"
+      PRIVATE_KEY: |
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIGvrti8aB/hv41OSyjXK0KB3U0cLKwA+RKCn5UiChp+yoAoGCCqGSM49
+        AwEHoUQDQgAEaGdjmHWV4qXQFnI548BLMO0oHCKz2Lz0zjCpldMSNize/86ZCqLJ
+        jDANQxX6YesgSkHkj8xjk63NQK7QY3icDg==
+        -----END EC PRIVATE KEY-----
+      PUBLIC_KEY: |
+        -----BEGIN PUBLIC KEY-----
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaGdjmHWV4qXQFnI548BLMO0oHCKz
+        2Lz0zjCpldMSNize/86ZCqLJjDANQxX6YesgSkHkj8xjk63NQK7QY3icDg==
+        -----END PUBLIC KEY-----
+      DB_USERNAME: "tamaki"
+      DB_PASSWORD: "tamaki*cafe*pos"
+      DB_HOST: "10.1.0.10"
+      DB_PORT: "3306"
+      DB_DATABASE: "cafe_pos"
+    restart: unless-stopped
+
+  # order-service:
+  #   image: your-order-service-image
+  #   ports:
+  #     - "8083:80"
+  #   depends_on:
+  #     - mysql
+  #   environment:
+  #     - ORDER_SERVICE_ENV_VAR1=value1
+  #     - ORDER_SERVICE_ENV_VAR2=value2
+  #   restart: unless-stopped
+
+  # payment-service:
+  #   image: your-payment-service-image
+  #   ports:
+  #     - "8084:80"
+  #   depends_on:
+  #     - mysql
+  #   environment:
+  #     - PAYMENT_SERVICE_ENV_VAR1=value1
+  #     - PAYMENT_SERVICE_ENV_VAR2=value2
+  #   restart: unless-stopped
+
+  # guest-service:
+  #   image: your-guest-service-image
+  #   ports:
+  #     - "8085:80"
+  #   depends_on:
+  #     - mysql
+  #     - redis
+  #   environment:
+  #     - GUEST_SERVICE_ENV_VAR1=value1
+  #     - GUEST_SERVICE_ENV_VAR2=value2
+  #   restart: unless-stopped
+
+  mysql:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "tamaki*cafe*pos"
+      MYSQL_DATABASE: "cafe_pos"
+      MYSQL_USER: "tamaki"
+      MYSQL_PASSWORD: "tamaki*cafe*pos"
+    restart: unless-stopped
+    networks:
+      vpcbr:
+        ipv4_address: 10.1.0.10
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      vpcbr:
+        ipv4_address: 10.1.0.11
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.1.0.0/16
+          gateway: 10.1.0.1

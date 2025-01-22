@@ -5,8 +5,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-
-	"github.com/zxstrike/cafe-pos/api-gateway/middlewares"
+	"strings"
 )
 
 // Route struct to hold the endpoint and its corresponding target service
@@ -17,10 +16,10 @@ type Route struct {
 
 // Initialize the routes
 var routes = []Route{
-	{"/users", "http://localhost:8081"},   // User Service
-	{"/orders", "http://localhost:8082"},  // Order Service
-	{"/menu", "http://localhost:8083"},    // Menu Service
-	{"/payment", "http://localhost:8084"}, // Payment Service
+	{"/users", "http://10.1.0.3"},  // User Service
+	{"/menu", "http://10.1.0.4"},   // Menu Service
+	{"/orders", "http://10.1.0.5"}, // Order Service
+	{"/payment", "http://10.1.6."}, // Payment Service
 }
 
 // InitRoutes initializes the routes and proxies them to the target services
@@ -33,7 +32,14 @@ func InitRoutes() {
 
 		proxy := httputil.NewSingleHostReverseProxy(target)
 
-		// Apply AuthMiddleware to routes
-		http.Handle(route.Path+"/", middlewares.AuthMiddleware(http.StripPrefix(route.Path, proxy)))
+		log.Printf("Proxying %s to %s\n", route.Path, route.Target)
+
+		http.HandleFunc(route.Path+"/", func(w http.ResponseWriter, r *http.Request) {
+			trimR := strings.Replace(r.URL.Path, route.Path, "", 1)
+
+			r.URL.Path = trimR
+
+			proxy.ServeHTTP(w, r)
+		})
 	}
 }
